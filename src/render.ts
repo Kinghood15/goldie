@@ -20,8 +20,17 @@ import {
 import { execOrThrow } from "./exec.ts";
 import { registerFonts, withGlyphFallback } from "./fonts.ts";
 import { pngInfo } from "./image.ts";
-import { BADGE, type Composition, compose, SCREEN_SHADOW, TYPE } from "./layouts.ts";
-import { DEVICES, type DeviceKey, PREVIEW, SCREENSHOT_PIXEL_FORMAT } from "./specs.ts";
+import { BADGE, type Composition, compose, type Rect, SCREEN_SHADOW, TYPE } from "./layouts.ts";
+import {
+  CREATIVE,
+  CREATIVE_KEYS,
+  type CreativeKey,
+  DEVICES,
+  type DeviceKey,
+  PREVIEW,
+  SAFE_AREA,
+  SCREENSHOT_PIXEL_FORMAT,
+} from "./specs.ts";
 
 async function readManifest(
   cfg: LoadedConfig,
@@ -133,6 +142,117 @@ export async function renderScreenshots(cfg: LoadedConfig, deviceKey: DeviceKey,
     }),
   );
   return files.flat();
+}
+
+/**
+ * Product page header, search results and universal assets: the first
+ * scene's headline beside a device that bleeds off the bottom edge. Wide
+ * tiles do not suit the screenshot layouts, so this composes its own
+ * left-copy / right-device arrangement into an area: the whole tile, or for
+ * the universal asset the safe area both of Apple's crops keep.
+ */
+export async function renderCreative(cfg: LoadedConfig, locale: string) {
+  if (isTransparent(cfg.theme.background))
+    throw new Error("Creative assets must be opaque; set a non-transparent theme.background.");
+  const first = resolvedScenes(cfg)[0]?.scene;
+  const scene = cfg.creative?.scene
+    ? cfg.scenes.find((s) => s.id === cfg.creative!.scene && s.kind === "screenshot")
+    : first;
+  if (!scene || scene.kind !== "screenshot")
+    throw new Error(`creative.scene "${cfg.creative?.scene}" is not a screenshot scene.`);
+
+  // Frame with an iPhone when the config has one; the bezel follows that device.
+  const deviceKey =
+    cfg.devices.find((d) => DEVICES[d].type === "iphone") ??
+    cfg.devices.find((d) => DEVICES[d].platform === "ios") ??
+    cfg.devices[0]!;
+  const spec = DEVICES[deviceKey];
+  const manifest = await readManifest(cfg, deviceKey, locale);
+  const shot = manifest.screenshots.find((s) => s.sceneId === scene.id);
+  if (!shot) throw new Error(`Scene "${scene.id}" is not in the capture manifest.`);
+  const capture = await loadImage(shot.file);
+  const { image, geom } = deviceFrame(cfg, deviceKey);
+  const screenOnly = Boolean(cfg.theme.screenOnly || spec.screenOnly);
+  const bezel = screenOnly ? null : await loadImage(image);
+  registerFonts(cfg.theme.fontFiles);
+
+  const outDir = join(cfg.outDir, "creative", locale);
+  await rm(outDir, { recursive: true, force: true });
+  await mkdir(outDir, { recursive: true });
+  const background = scene.background ?? cfg.theme.background;
+
+  const files: string[] = [];
+  for (const key of CREATIVE_KEYS) {
+    const { width, height } = CREATIVE[key];
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = paint(ctx, background, width, height);
+    ctx.fillRect(0, 0, width, height);
+    const area: Rect = key === "universal" ? SAFE_AREA : { left: 0, top: 0, width, height };
+
+    // Device: as tall as the area, dropped 14% so the bottom bleeds off.
+    const art = screenOnly ? { width: geom.screen.width, height: geom.screen.height } : geom;
+    const k = area.height / art.height;
+    const origin = screenOnly ? { x: 0, y: 0 } : geom.screen;
+    const frame: Rect = {
+      left: area.left + area.width * 0.74 - (art.width * k) / 2,
+      top: area.top + area.height * 0.14,
+      width: art.width * k,
+      height: art.height * k,
+    };
+    const screen = {
+      left: frame.left + origin.x * k,
+      top: frame.top + origin.y * k,
+      width: geom.screen.width * k,
+      height: geom.screen.height * k,
+      radius: geom.screenRadius * k,
+    };
+
+    const typeWidth = area.height * 1.1;
+    drawCopy(
+      ctx,
+      {
+        position: "top",
+        align: "left",
+        x: area.left + area.width * 0.08,
+        y: area.top + area.height * 0.3,
+        maxWidth: area.width * 0.44,
+        typeWidth,
+        box: area,
+      },
+      { width: typeWidth, height: area.height },
+      cfg.theme,
+      {
+        headline: pick(scene.headline, locale, scene.id, "headline"),
+        subhead: scene.subhead ? pick(scene.subhead, locale, scene.id, "subhead") : undefined,
+      },
+    );
+    drawDevice(ctx, { frame, screen, rotate: 0, capture: "primary" }, capture, bezel, {
+      width: area.height * 0.46,
+    });
+    console.log(`  creative ${key}`);
+    files.push(await writePng(canvas, outDir, `${key}.png`));
+  }
+  return files;
+}
+
+/** Checks creative assets for exact size and no alpha. */
+export async function verifyCreative(cfg: LoadedConfig, locale: string): Promise<boolean> {
+  let ok = true;
+  for (const key of CREATIVE_KEYS) {
+    const file = join(cfg.outDir, "creative", locale, `${key}.png`);
+    const want = CREATIVE[key];
+    const info = await pngInfo(file).catch(() => null);
+    if (!info) continue; // not rendered: nothing to check
+    const good = info.width === want.width && info.height === want.height && !info.hasAlpha;
+    ok &&= good;
+    console.log(
+      `  ${good ? "ok  " : "FAIL"} ${key}.png  ${info.width}x${info.height}` +
+        `${info.hasAlpha ? "  alpha channel present" : ""}` +
+        `${good ? "" : `  expected ${want.width}x${want.height}, no alpha`}`,
+    );
+  }
+  return ok;
 }
 
 /**

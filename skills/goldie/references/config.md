@@ -185,3 +185,12 @@ applies to every tile, `scenes[].decorations` to one; both stack.
 
 `goldie verify` checks the finished files against these with `sips` and
 `ffprobe` and fails on any mismatch.
+
+## Product page creative assets
+
+`goldie creative` (also run by `goldie all`) renders the product page header
+(21:9, 3840x1646), the search results asset (3:2, 3840x2560) and the universal
+asset (16:9, 5244x2950) into `out/creative/<locale>/`. Each shows the first
+scene's headline beside its device; opaque PNG, no alpha. The universal asset
+keeps copy and device inside the area both Apple crops share. Pick another
+scene with `creative: { scene: "detail" }`.

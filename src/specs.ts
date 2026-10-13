@@ -154,5 +154,27 @@ export const PREVIEW = {
   maxBytes: 500 * 1024 * 1024,
 } as const;
 
+/**
+ * Product page creative assets (iOS 27+): opaque stills, 500 MB max. The
+ * universal asset serves both placements: the App Store crops it to 21:9 for
+ * the header and 3:2 for search, so copy and device stay inside the area both
+ * crops share (see SAFE_AREA).
+ */
+export type CreativeKey = "header" | "search" | "universal";
+export const CREATIVE: Record<CreativeKey, { width: number; height: number; format: string }> = {
+  header: { width: 3840, height: 1646, format: "21:9" },
+  search: { width: 3840, height: 2560, format: "3:2" },
+  universal: { width: 5244, height: 2950, format: "16:9" },
+};
+export const CREATIVE_KEYS = Object.keys(CREATIVE) as CreativeKey[];
+
+/** The universal asset's region both crops keep: 3:2's width by 21:9's height, centred. */
+export const SAFE_AREA = (() => {
+  const u = CREATIVE.universal;
+  const width = u.height * (3 / 2);
+  const height = u.width * (1646 / 3840);
+  return { left: (u.width - width) / 2, top: (u.height - height) / 2, width, height };
+})();
+
 /** Screenshots may not carry an alpha channel. */
 export const SCREENSHOT_PIXEL_FORMAT = "rgb24";

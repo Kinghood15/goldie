@@ -188,7 +188,11 @@ export function exportHandler({ paths, cli }: StudioApi): (sub: string) => Handl
         }
         res.write("$ zip screenshots + previews\n");
         await rm(paths.exportZip, { force: true });
-        const count = await zipDirs(paths.outDir, ["screenshots", "previews"], paths.exportZip);
+        const count = await zipDirs(
+          paths.outDir,
+          ["screenshots", "previews", "creative"],
+          paths.exportZip,
+        );
         res.write(`  ${count} files\n`);
         res.write("[done]\n");
       } catch (err) {

@@ -168,6 +168,11 @@ export type StoreListing = {
 };
 
 export type GoldieConfig = {
+  /** Product page header / search / universal assets (`goldie creative`). */
+  creative?: {
+    /** Screenshot scene whose capture and copy fill them. Defaults to the first scene in display order. */
+    scene?: string;
+  };
   /** Absolute path to the app repo. Holds `.argent/flows`; also used for messages and for locating the build. */
   appRoot: string;
   /**
