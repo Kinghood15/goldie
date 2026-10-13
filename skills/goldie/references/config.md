@@ -24,7 +24,7 @@ const config: GoldieConfig = {
   // their selectors match. The emulator must already be running.
   // android: { appPath: "/path/to/app-release.apk", applicationId: "com.example.app" },
 
-  // "iphone-6.9" (iPhone 17 Pro Max), "ipad-13" (iPad Pro 13-inch), "pixel-10-pro" (Google Play); keys from $GOLDIE/src/specs.ts.
+  // "iphone-6.9" (iPhone 17 Pro Max), "ipad-13" (iPad Pro 13-inch), "iphone-duo-outer" / "iphone-duo-inner" (foldable iPhone Duo, bare screens, no bezel), "pixel-10-pro" (Google Play phone), "pixel-9-pro-fold-outer" / "pixel-9-pro-fold-inner" (Google Play foldable, Pixel 9 Pro Fold AVD, bundled bezels); keys from $GOLDIE/src/specs.ts.
   // Every device replays the same flows and gets its own raw captures, output folder and studio view.
   devices: ["iphone-6.9", "ipad-13"],
   locales: ["en-US"],
@@ -185,3 +185,19 @@ applies to every tile, `scenes[].decorations` to one; both stack.
 
 `goldie verify` checks the finished files against these with `sips` and
 `ffprobe` and fails on any mismatch.
+
+## Product page creative assets
+
+`goldie creative` (also run by `goldie all`) renders, into
+`out/creative/<locale>/`, opaque PNGs for the product page header (21:9,
+3840x1646), search results (3:2, 3840x2560), the universal asset (16:9,
+5244x2950) and in-app events (card 1920x1080, details 1080x1920). Each shows
+the first scene's headline beside its device. The universal asset keeps copy
+and device inside the area both Apple crops share. Pick another scene with
+`creative: { scene: "detail" }`.
+
+When the capture has preview clips, header, search and both event placements
+also get an `.mp4` (30 fps, silent) with the clips playing in the device.
+A placement is skipped if the clips run shorter than Apple's minimum (5s for
+header and search, 15s for events); anything longer than 30s is trimmed.
+The studio's Creative tab previews the finished files.

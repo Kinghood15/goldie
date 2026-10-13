@@ -9,13 +9,20 @@
  *   themselves, with no store constraints enforced.
  */
 
-export type DeviceKey = "iphone-6.9" | "ipad-13" | "pixel-10-pro";
+export type DeviceKey =
+  | "iphone-6.9"
+  | "iphone-duo-outer"
+  | "iphone-duo-inner"
+  | "ipad-13"
+  | "pixel-10-pro"
+  | "pixel-9-pro-fold-outer"
+  | "pixel-9-pro-fold-inner";
 
 /**
  * The studio's device-type tabs. Finer than the platform: iPhones and iPads
  * share the App Store pipeline but are shown apart.
  */
-export type DeviceType = "iphone" | "ipad" | "android";
+export type DeviceType = "iphone" | "foldable" | "ipad" | "android";
 
 export type DeviceSpec = {
   /**
@@ -50,6 +57,12 @@ export type DeviceSpec = {
    * themselves (Play takes no video uploads). null: no preview pipeline.
    */
   preview: { width: number; height: number } | null;
+  /**
+   * Foldable simulators: the posture to fold to before capturing. "closed"
+   * shows the outer display, "open" the inner one; both keys share one
+   * simulator or emulator.
+   */
+  fold?: "closed" | "open";
   /** Render bare screens with the drop shadow instead of a bezel. */
   screenOnly?: true;
   /**
@@ -69,6 +82,31 @@ export const DEVICES: Record<DeviceKey, DeviceSpec> = {
     native: { width: 1320, height: 2868 },
     screenshot: { width: 1320, height: 2868 },
     preview: { width: 886, height: 1920 },
+  },
+  // The iPhone Duo has no bundled bezel art, so both displays render bare.
+  // Sizes: App Store Connect screenshot specifications, iPhone Duo.
+  "iphone-duo-outer": {
+    label: "Duo outer",
+    platform: "ios",
+    type: "foldable",
+    simulatorName: "iPhone Duo",
+    fold: "closed",
+    screenOnly: true,
+    native: { width: 1398, height: 2034 },
+    screenshot: { width: 1398, height: 2034 },
+    preview: { width: 1398, height: 2034 },
+  },
+  "iphone-duo-inner": {
+    label: "Duo inner",
+    platform: "ios",
+    type: "foldable",
+    simulatorName: "iPhone Duo",
+    fold: "open",
+    screenOnly: true,
+    copyScale: 1.3,
+    native: { width: 2007, height: 2853 },
+    screenshot: { width: 2007, height: 2853 },
+    preview: { width: 2007, height: 2853 },
   },
   "ipad-13": {
     label: "13",
@@ -94,6 +132,30 @@ export const DEVICES: Record<DeviceKey, DeviceSpec> = {
     // sliver; YouTube accepts any portrait size.
     preview: { width: 1080, height: 2400 },
   },
+  // Pixel 9 Pro Fold: one AVD, two displays (fold closed = outer, open =
+  // inner), each with its own emulator-skin bezel (src/frame.ts). Tiles are
+  // 9:16 so Play accepts them; the inner display is near-square.
+  "pixel-9-pro-fold-outer": {
+    label: "Play fold outer",
+    platform: "android",
+    type: "foldable",
+    avdDeviceNames: ["pixel_9_pro_fold"],
+    fold: "closed",
+    native: null,
+    screenshot: { width: 1080, height: 1920 },
+    preview: { width: 1080, height: 2424 },
+  },
+  "pixel-9-pro-fold-inner": {
+    label: "Play fold inner",
+    platform: "android",
+    type: "foldable",
+    avdDeviceNames: ["pixel_9_pro_fold"],
+    fold: "open",
+    copyScale: 1.3,
+    native: null,
+    screenshot: { width: 2160, height: 3840 },
+    preview: { width: 2076, height: 2152 },
+  },
 };
 
 export const DEVICE_KEYS = Object.keys(DEVICES) as DeviceKey[];
@@ -117,6 +179,40 @@ export const PREVIEW = {
   audioSampleRate: 48000,
   maxBytes: 500 * 1024 * 1024,
 } as const;
+
+/**
+ * Product page creative assets (iOS 27+): opaque stills, 500 MB max. The
+ * universal asset serves both placements: the App Store crops it to 21:9 for
+ * the header and 3:2 for search, so copy and device stay inside the area both
+ * crops share (see SAFE_AREA).
+ */
+export type CreativeKey = "header" | "search" | "universal" | "event-card" | "event-details";
+export const CREATIVE: Record<CreativeKey, { width: number; height: number; format: string }> = {
+  header: { width: 3840, height: 1646, format: "21:9" },
+  search: { width: 3840, height: 2560, format: "3:2" },
+  universal: { width: 5244, height: 2950, format: "16:9" },
+  // In-app event media: card is 16:9, details page 9:16. Smallest accepted size.
+  "event-card": { width: 1920, height: 1080, format: "16:9" },
+  "event-details": { width: 1080, height: 1920, format: "9:16" },
+};
+/** Placements that also take a video (mp4, 30 fps), with Apple's length window in seconds. */
+export const CREATIVE_VIDEO: Partial<
+  Record<CreativeKey, { minSeconds: number; maxSeconds: number }>
+> = {
+  header: { minSeconds: 5, maxSeconds: 30 },
+  search: { minSeconds: 5, maxSeconds: 30 },
+  "event-card": { minSeconds: 15, maxSeconds: 30 },
+  "event-details": { minSeconds: 15, maxSeconds: 30 },
+};
+export const CREATIVE_KEYS = Object.keys(CREATIVE) as CreativeKey[];
+
+/** The universal asset's region both crops keep: 3:2's width by 21:9's height, centred. */
+export const SAFE_AREA = (() => {
+  const u = CREATIVE.universal;
+  const width = u.height * (3 / 2);
+  const height = u.width * (1646 / 3840);
+  return { left: (u.width - width) / 2, top: (u.height - height) / 2, width, height };
+})();
 
 /** Screenshots may not carry an alpha channel. */
 export const SCREENSHOT_PIXEL_FORMAT = "rgb24";

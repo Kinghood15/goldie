@@ -16,6 +16,12 @@ Source Project and licensed under the
 [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0), with the
 display rect the skin's `layout` file states punched transparent.
 
+`pixel-9-pro-fold-outer.webp` and `pixel-9-pro-fold-inner.webp` are the Pixel 9
+Pro Fold emulator skin's `closed/back.webp` and `default/back.webp`
+(`$ANDROID_HOME/skins/pixel_9_pro_fold/`), with the skin's `mask.webp`
+(rounded display corners and camera hole) laid over the display rect. Same
+Apache License 2.0 terms as above.
+
 The rest of goldie is MIT licensed.
 
 ## Fonts

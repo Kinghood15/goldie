@@ -1,5 +1,6 @@
 import {
   GalleryHorizontalIcon,
+  ImageIcon,
   LayoutGridIcon,
   type LucideIcon,
   MoonIcon,
@@ -32,8 +33,10 @@ import type { StripView } from "./Strip";
  */
 const DEVICE_TYPES: Array<{ key: DeviceType; icon: LucideIcon; label: string }> = [
   { key: "iphone", icon: SmartphoneIcon, label: "iPhone" },
+  { key: "foldable", icon: SmartphoneIcon, label: "Foldable" },
   { key: "ipad", icon: TabletIcon, label: "iPad" },
   { key: "android", icon: PlayIcon, label: "Android" },
+  { key: "creative", icon: ImageIcon, label: "Creative" },
 ];
 
 /**

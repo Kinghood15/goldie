@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import type { CustomFont } from "./fonts.ts";
-import { ANDROID_FRAME, FRAMES, type FrameGeometry } from "./frame.ts";
+import { ANDROID_FRAMES, FRAMES, type FrameGeometry } from "./frame.ts";
 import {
   isLayoutKey,
   isTemplateKey,
@@ -168,6 +168,11 @@ export type StoreListing = {
 };
 
 export type GoldieConfig = {
+  /** Product page header / search / universal assets (`goldie creative`). */
+  creative?: {
+    /** Screenshot scene whose capture and copy fill them. Defaults to the first scene in display order. */
+    scene?: string;
+  };
   /** Absolute path to the app repo. Holds `.argent/flows`; also used for messages and for locating the build. */
   appRoot: string;
   /**
@@ -185,8 +190,8 @@ export type GoldieConfig = {
     appPath: string;
     applicationId: string;
     /**
-     * Bezel art for the android device, replacing the bundled Pixel 10 Pro
-     * art, with its own geometry: the image (relative to the config), its
+     * Bezel art for the pixel-10-pro device, replacing the bundled Pixel 10 Pro
+     * art (the foldable devices always use their bundled art), with its own geometry: the image (relative to the config), its
      * pixel size, the transparent screen cutout inside it, and the cutout's
      * corner radius. Android SDK emulator skins
      * (`$ANDROID_HOME/skins/<device>/`) carry exactly this: `back.webp` is the
@@ -296,7 +301,8 @@ export async function loadConfig(path = defaultConfigPath()): Promise<LoadedConf
   applyDesign(loaded, readDesign(path));
   // Fail at load time on a bad variant or missing bezel PNG; android devices
   // never load one from cfg.frame (drawn generic bezel or cfg.android.frame).
-  for (const d of loaded.devices) if (DEVICES[d].platform !== "android") framePath(loaded, d);
+  for (const d of loaded.devices)
+    if (DEVICES[d].platform !== "android" && !DEVICES[d].screenOnly) framePath(loaded, d);
   validateLayouts(loaded);
   return loaded;
 }
@@ -548,7 +554,7 @@ function configVariants(cfg: LoadedConfig): Partial<Record<DeviceKey, FrameVaria
 
 /** The variant a device renders with; null when the config points at custom art. */
 export function frameVariantFor(cfg: LoadedConfig, device: DeviceKey): FrameVariant | null {
-  if (!("variant" in cfg.frame)) return null;
+  if (!("variant" in cfg.frame) || DEVICES[device].screenOnly) return null;
   const chosen = configVariants(cfg)[device];
   if (chosen !== undefined) {
     if (!isFrameVariant(chosen)) {
@@ -586,15 +592,17 @@ export function deviceFrame(
   cfg: LoadedConfig,
   deviceKey: DeviceKey,
 ): { image: string; geom: FrameGeometry } {
+  if (DEVICES[deviceKey].screenOnly) return { image: "", geom: FRAMES[deviceKey] };
   if (DEVICES[deviceKey].platform !== "android")
     return { image: framePath(cfg, deviceKey), geom: FRAMES[deviceKey] };
-  const custom = cfg.android?.frame;
+  const bundled = ANDROID_FRAMES[deviceKey]!;
+  const custom = deviceKey === "pixel-10-pro" ? cfg.android?.frame : undefined;
   if (custom) {
     const image = resolve(cfg.root, custom.image);
     if (!existsSync(image)) throw new Error(`Frame image not found: ${image}`);
     return { image, geom: custom };
   }
-  return { image: resolve(GOLDIE_ROOT, "assets", ANDROID_FRAME.file), geom: ANDROID_FRAME.geom };
+  return { image: resolve(GOLDIE_ROOT, "assets", bundled.file), geom: bundled.geom };
 }
 
 /**

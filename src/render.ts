@@ -20,8 +20,18 @@ import {
 import { execOrThrow } from "./exec.ts";
 import { registerFonts, withGlyphFallback } from "./fonts.ts";
 import { pngInfo } from "./image.ts";
-import { BADGE, type Composition, compose, SCREEN_SHADOW, TYPE } from "./layouts.ts";
-import { DEVICES, type DeviceKey, PREVIEW, SCREENSHOT_PIXEL_FORMAT } from "./specs.ts";
+import { BADGE, type Composition, compose, type Rect, SCREEN_SHADOW, TYPE } from "./layouts.ts";
+import {
+  CREATIVE,
+  CREATIVE_KEYS,
+  CREATIVE_VIDEO,
+  type CreativeKey,
+  DEVICES,
+  type DeviceKey,
+  PREVIEW,
+  SAFE_AREA,
+  SCREENSHOT_PIXEL_FORMAT,
+} from "./specs.ts";
 
 async function readManifest(
   cfg: LoadedConfig,
@@ -133,6 +143,185 @@ export async function renderScreenshots(cfg: LoadedConfig, deviceKey: DeviceKey,
     }),
   );
   return files.flat();
+}
+
+/**
+ * Product page header, search results, universal and in-app event assets:
+ * the first scene's headline beside a device that bleeds off the bottom edge
+ * (copy above the device on portrait tiles). Wide tiles do not suit the
+ * screenshot layouts, so this composes its own arrangement into an area: the
+ * whole tile, or for the universal asset the safe area both of Apple's crops
+ * keep. Placements that take video also get an mp4 of the preview clips
+ * playing inside the device.
+ */
+export async function renderCreative(cfg: LoadedConfig, locale: string) {
+  if (isTransparent(cfg.theme.background))
+    throw new Error("Creative assets must be opaque; set a non-transparent theme.background.");
+  const scene = cfg.creative?.scene
+    ? cfg.scenes.find((s) => s.id === cfg.creative!.scene && s.kind === "screenshot")
+    : resolvedScenes(cfg)[0]?.scene;
+  if (!scene || scene.kind !== "screenshot")
+    throw new Error(`creative.scene "${cfg.creative?.scene}" is not a screenshot scene.`);
+
+  // Frame with an iPhone when the config has one; the bezel follows that device.
+  const deviceKey =
+    cfg.devices.find((d) => DEVICES[d].type === "iphone") ??
+    cfg.devices.find((d) => DEVICES[d].platform === "ios") ??
+    cfg.devices[0]!;
+  const spec = DEVICES[deviceKey];
+  const manifest = await readManifest(cfg, deviceKey, locale);
+  const shot = manifest.screenshots.find((s) => s.sceneId === scene.id);
+  if (!shot) throw new Error(`Scene "${scene.id}" is not in the capture manifest.`);
+  const capture = await loadImage(shot.file);
+  const { image, geom } = deviceFrame(cfg, deviceKey);
+  const screenOnly = Boolean(cfg.theme.screenOnly || spec.screenOnly);
+  const bezel = screenOnly ? null : await loadImage(image);
+  registerFonts(cfg.theme.fontFiles);
+
+  const outDir = join(cfg.outDir, "creative", locale);
+  await rm(outDir, { recursive: true, force: true });
+  await mkdir(outDir, { recursive: true });
+  const background = scene.background ?? cfg.theme.background;
+  const text = {
+    headline: pick(scene.headline, locale, scene.id, "headline"),
+    subhead: scene.subhead ? pick(scene.subhead, locale, scene.id, "subhead") : undefined,
+  };
+
+  const files: string[] = [];
+  for (const key of CREATIVE_KEYS) {
+    const { width, height } = CREATIVE[key];
+    const tall = height > width;
+    const area: Rect = key === "universal" ? SAFE_AREA : { left: 0, top: 0, width, height };
+
+    // Device: as tall as the area (as wide as 78% of it when tall), dropped so the bottom bleeds off.
+    const art = screenOnly ? { width: geom.screen.width, height: geom.screen.height } : geom;
+    const k = tall ? (area.width * 0.78) / art.width : area.height / art.height;
+    const origin = screenOnly ? { x: 0, y: 0 } : geom.screen;
+    const frame: Rect = {
+      left: tall
+        ? area.left + (area.width - art.width * k) / 2
+        : area.left + area.width * 0.74 - (art.width * k) / 2,
+      top: area.top + area.height * (tall ? 0.36 : 0.14),
+      width: art.width * k,
+      height: art.height * k,
+    };
+    const screen = {
+      left: frame.left + origin.x * k,
+      top: frame.top + origin.y * k,
+      width: geom.screen.width * k,
+      height: geom.screen.height * k,
+      radius: geom.screenRadius * k,
+    };
+    const typeWidth = tall ? area.width : area.height * 1.1;
+    const copy = {
+      position: "top" as const,
+      align: "left" as const,
+      x: area.left + area.width * 0.08,
+      y: area.top + area.height * (tall ? 0.07 : 0.3),
+      maxWidth: area.width * (tall ? 0.84 : 0.44),
+      typeWidth,
+      box: area,
+    };
+    const tile = { width: typeWidth, height: area.height };
+    const base = () => {
+      const canvas = createCanvas(width, height);
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = paint(ctx, background, width, height);
+      ctx.fillRect(0, 0, width, height);
+      drawCopy(ctx, copy, tile, cfg.theme, text);
+      return { canvas, ctx };
+    };
+
+    const { canvas, ctx } = base();
+    drawDevice(ctx, { frame, screen, rotate: 0, capture: "primary" }, capture, bezel, {
+      width: area.height * 0.46,
+    });
+    console.log(`  creative ${key}`);
+    files.push(await writePng(canvas, outDir, `${key}.png`));
+
+    const window = CREATIVE_VIDEO[key];
+    const clips = manifest.preview?.clips;
+    if (!window || !clips?.length) continue;
+    const seconds = Math.min(
+      clips.reduce((sum, c) => sum + c.durationSeconds, 0),
+      window.maxSeconds,
+    );
+    if (seconds < window.minSeconds) {
+      console.log(
+        `  creative ${key} video skipped: clips run ${seconds.toFixed(1)}s, need ${window.minSeconds}s`,
+      );
+      continue;
+    }
+    // Layers: copy on the background, clip in the screen, bezel over the clip.
+    const layers = { bg: `.${key}.bg.png`, bezel: `.${key}.bezel.png`, list: `.${key}.clips.txt` };
+    await writePng(base().canvas, outDir, layers.bg);
+    const top = createCanvas(width, height);
+    if (bezel)
+      top.getContext("2d").drawImage(bezel, frame.left, frame.top, frame.width, frame.height);
+    await writePng(top, outDir, layers.bezel, true);
+    await writeFile(
+      join(outDir, layers.list),
+      clips.map((c) => `file '${c.file.replace(/'/g, "'\\''")}'`).join("\n"),
+    );
+    const [sw, sh, sx, sy] = [screen.width, screen.height, screen.left, screen.top].map(Math.round);
+    const out = join(outDir, `${key}.mp4`);
+    console.log(`  creative ${key} video (${seconds.toFixed(1)}s)`);
+    // ponytail: screen-only devices keep square clip corners; mask them if that ever shows.
+    await execOrThrow("ffmpeg", [
+      "-y",
+      "-loglevel",
+      "error",
+      "-loop",
+      "1",
+      "-i",
+      join(outDir, layers.bg),
+      "-f",
+      "concat",
+      "-safe",
+      "0",
+      "-i",
+      join(outDir, layers.list),
+      "-loop",
+      "1",
+      "-i",
+      join(outDir, layers.bezel),
+      "-filter_complex",
+      `[1:v]scale=${sw}:${sh}:force_original_aspect_ratio=increase:flags=lanczos,crop=${sw}:${sh}[c];` +
+        `[0:v][c]overlay=${sx}:${sy}[a];[a][2:v]overlay=0:0,fps=${PREVIEW.fps},format=yuv420p`,
+      "-t",
+      String(seconds),
+      "-c:v",
+      "libx264",
+      "-crf",
+      "18",
+      "-an",
+      "-movflags",
+      "+faststart",
+      out,
+    ]);
+    for (const f of Object.values(layers)) await rm(join(outDir, f), { force: true });
+    files.push(out);
+  }
+  return files;
+}
+
+/** Checks creative assets for exact size and no alpha. */
+export async function verifyCreative(cfg: LoadedConfig, locale: string): Promise<boolean> {
+  let ok = true;
+  for (const key of CREATIVE_KEYS) {
+    const file = join(cfg.outDir, "creative", locale, `${key}.png`);
+    const want = CREATIVE[key];
+    const info = await pngInfo(file).catch(() => null);
+    if (!info) continue; // not rendered: nothing to check
+    const good = info.width === want.width && info.height === want.height && !info.hasAlpha;
+    ok &&= good;
+    console.log(
+      `  ${good ? "ok  " : "FAIL"} ${key}.png  ${info.width}x${info.height}` +
+        `${info.hasAlpha ? "  alpha channel present" : ""}` +
+        `${good ? "" : `  expected ${want.width}x${want.height}, no alpha`}`,
+    );
+  }
+  return ok;
 }
 
 /**
