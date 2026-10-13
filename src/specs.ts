@@ -160,11 +160,23 @@ export const PREVIEW = {
  * the header and 3:2 for search, so copy and device stay inside the area both
  * crops share (see SAFE_AREA).
  */
-export type CreativeKey = "header" | "search" | "universal";
+export type CreativeKey = "header" | "search" | "universal" | "event-card" | "event-details";
 export const CREATIVE: Record<CreativeKey, { width: number; height: number; format: string }> = {
   header: { width: 3840, height: 1646, format: "21:9" },
   search: { width: 3840, height: 2560, format: "3:2" },
   universal: { width: 5244, height: 2950, format: "16:9" },
+  // In-app event media: card is 16:9, details page 9:16. Smallest accepted size.
+  "event-card": { width: 1920, height: 1080, format: "16:9" },
+  "event-details": { width: 1080, height: 1920, format: "9:16" },
+};
+/** Placements that also take a video (mp4, 30 fps), with Apple's length window in seconds. */
+export const CREATIVE_VIDEO: Partial<
+  Record<CreativeKey, { minSeconds: number; maxSeconds: number }>
+> = {
+  header: { minSeconds: 5, maxSeconds: 30 },
+  search: { minSeconds: 5, maxSeconds: 30 },
+  "event-card": { minSeconds: 15, maxSeconds: 30 },
+  "event-details": { minSeconds: 15, maxSeconds: 30 },
 };
 export const CREATIVE_KEYS = Object.keys(CREATIVE) as CreativeKey[];
 

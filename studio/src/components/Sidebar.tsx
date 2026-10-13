@@ -1,5 +1,6 @@
 import {
   GalleryHorizontalIcon,
+  ImageIcon,
   LayoutGridIcon,
   type LucideIcon,
   MoonIcon,
@@ -35,6 +36,7 @@ const DEVICE_TYPES: Array<{ key: DeviceType; icon: LucideIcon; label: string }> 
   { key: "foldable", icon: SmartphoneIcon, label: "Duo" },
   { key: "ipad", icon: TabletIcon, label: "iPad" },
   { key: "android", icon: PlayIcon, label: "Android" },
+  { key: "creative", icon: ImageIcon, label: "Creative" },
 ];
 
 /**

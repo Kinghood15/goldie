@@ -1,11 +1,13 @@
 import {
   CameraIcon,
+  ImageIcon,
   type LucideIcon,
   SmartphoneIcon,
   TabletIcon,
   TriangleAlertIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { CreativeGallery } from "./components/CreativeGallery";
 import { EmptyState } from "./components/EmptyState";
 import { Sidebar } from "./components/Sidebar";
 import { Strip, type StripView } from "./components/Strip";
@@ -27,7 +29,7 @@ import {
 /** Sentinel for the config's own layout sequence, which the studio can show but not edit. */
 export const CUSTOM_TEMPLATE = "__custom__";
 
-const DEVICE_TYPES: DeviceType[] = ["iphone", "foldable", "ipad", "android"];
+const DEVICE_TYPES: DeviceType[] = ["iphone", "foldable", "ipad", "android", "creative"];
 
 /**
  * Shown when a device-type tab is selected but its device is not in the
@@ -61,6 +63,12 @@ const ENABLE_DEVICE_TYPE: Record<
     title: "No Google Play screenshots yet",
     body: "Ask your coding agent to set them up:",
     command: "create Google Play screenshots using goldie",
+  },
+  creative: {
+    icon: ImageIcon,
+    title: "No creative assets yet",
+    body: "Render the product page header, search and event assets:",
+    command: "goldie creative && goldie manifest",
   },
 };
 
@@ -302,7 +310,13 @@ function Loaded({ manifest, saved }: { manifest: StoreManifest; saved: SavedDesi
 
       <div className="flex min-w-0 flex-1 flex-col">
         <main className="relative grid min-h-0 flex-1 place-items-center-safe overflow-auto p-10">
-          {spec && captures ? (
+          {deviceType === "creative" ? (
+            manifest.creative?.[locale]?.length ? (
+              <CreativeGallery assets={manifest.creative[locale]} />
+            ) : (
+              <EmptyState {...ENABLE_DEVICE_TYPE.creative} />
+            )
+          ) : spec && captures ? (
             <div className="w-full max-w-[1400px]">
               <Strip
                 design={design}

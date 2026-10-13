@@ -77,6 +77,8 @@ export type StoreManifest = {
   locales: string[];
   /** Keyed by device key, then locale. */
   assets: Record<string, Record<string, LocaleAssets>>;
+  /** Finished creative assets (`goldie creative`) per locale. */
+  creative: Record<string, CreativeAsset[]>;
   /** Everything the studio needs to composite scenes in the browser. */
   design: {
     theme: Theme;
@@ -129,6 +131,13 @@ export type DeviceCaptureUrls = {
   clips: Array<{ segmentId: string; url: string; durationSeconds: number }> | null;
 };
 
+export type CreativeAsset = {
+  key: string;
+  kind: "image" | "video";
+  url: string;
+  bytes: number;
+};
+
 export type LocaleAssets = {
   screenshots: Array<{
     sceneId: string;
@@ -154,6 +163,7 @@ export async function writeManifest(cfg: LoadedConfig): Promise<string> {
   await mkdir(webDir, { recursive: true });
   await link(join(cfg.outDir, "screenshots"), join(webDir, "screenshots"));
   await link(join(cfg.outDir, "previews"), join(webDir, "previews"));
+  await link(join(cfg.outDir, "creative"), join(webDir, "creative"));
   await link(join(cfg.outDir, "raw"), join(webDir, "raw"));
 
   // Bezel art the browser composites with; every bundled variant so switching
@@ -247,6 +257,21 @@ export async function writeManifest(cfg: LoadedConfig): Promise<string> {
     }
   }
 
+  const creative: StoreManifest["creative"] = {};
+  for (const locale of cfg.locales) {
+    creative[locale] = [];
+    for (const name of (await ls(join(cfg.outDir, "creative", locale))).sort()) {
+      const kind = name.endsWith(".mp4") ? "video" : name.endsWith(".png") ? "image" : null;
+      if (!kind || name.startsWith(".")) continue;
+      creative[locale].push({
+        key: basename(name, extname(name)),
+        kind,
+        url: `creative/${locale}/${name}`,
+        bytes: (await stat(join(cfg.outDir, "creative", locale, name))).size,
+      });
+    }
+  }
+
   const captures: StoreManifest["design"]["captures"] = {};
   // Capture files sit under out/raw, which web/raw links to; a url keeps the
   // file's path below it, so per-locale dirs come along.
@@ -295,6 +320,7 @@ export async function writeManifest(cfg: LoadedConfig): Promise<string> {
     })),
     locales: cfg.locales,
     assets,
+    creative,
     design: {
       theme: cfg.theme,
       frames,

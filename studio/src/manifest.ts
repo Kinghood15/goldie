@@ -34,7 +34,7 @@ export type FrameGeometry = {
 };
 
 /** Mirrors DeviceType in src/specs.ts: the sidebar's device-type tabs. */
-export type DeviceType = "iphone" | "foldable" | "ipad" | "android";
+export type DeviceType = "iphone" | "foldable" | "ipad" | "android" | "creative";
 
 export type DeviceEntry = {
   key: string;
@@ -115,6 +115,11 @@ export type StoreManifest = {
   };
   devices: DeviceEntry[];
   locales: string[];
+  /** Finished creative assets per locale; absent in a store.json older than `goldie creative`. */
+  creative?: Record<
+    string,
+    Array<{ key: string; kind: "image" | "video"; url: string; bytes: number }>
+  >;
   design: Design;
 };
 

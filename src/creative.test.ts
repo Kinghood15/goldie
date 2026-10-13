@@ -10,3 +10,12 @@ describe("creative safe area", () => {
     expect(SAFE_AREA.width).toBeCloseTo(u.height * 1.5);
   });
 });
+
+describe("creative placements", () => {
+  test("every placement's size matches its stated aspect ratio", () => {
+    for (const [key, { width, height, format }] of Object.entries(CREATIVE)) {
+      const [w, h] = format.split(":").map(Number);
+      expect(Math.abs(width / height - w! / h!), key).toBeLessThan(0.01);
+    }
+  });
+});
