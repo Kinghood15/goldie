@@ -27,7 +27,7 @@ import {
 /** Sentinel for the config's own layout sequence, which the studio can show but not edit. */
 export const CUSTOM_TEMPLATE = "__custom__";
 
-const DEVICE_TYPES: DeviceType[] = ["iphone", "ipad", "android"];
+const DEVICE_TYPES: DeviceType[] = ["iphone", "foldable", "ipad", "android"];
 
 /**
  * Shown when a device-type tab is selected but its device is not in the
@@ -43,6 +43,12 @@ const ENABLE_DEVICE_TYPE: Record<
     title: "No App Store screenshots yet",
     body: "Ask your coding agent to set them up:",
     command: "create App Store screenshots using goldie",
+  },
+  foldable: {
+    icon: SmartphoneIcon,
+    title: "No iPhone Duo screenshots yet",
+    body: 'Add "iphone-duo-outer" and "iphone-duo-inner" to devices in goldie.config.ts, or ask your coding agent:',
+    command: "add iPhone Duo screenshots using goldie",
   },
   ipad: {
     icon: TabletIcon,

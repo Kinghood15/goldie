@@ -34,13 +34,14 @@ export type FrameGeometry = {
 };
 
 /** Mirrors DeviceType in src/specs.ts: the sidebar's device-type tabs. */
-export type DeviceType = "iphone" | "ipad" | "android";
+export type DeviceType = "iphone" | "foldable" | "ipad" | "android";
 
 export type DeviceEntry = {
   key: string;
   label: string;
   platform: "ios" | "android";
   type: DeviceType;
+  screenOnly: boolean;
   /** Copy size relative to the reference column's type; see DeviceSpec in src/specs.ts. */
   copyScale: number;
   simulatorName: string | null;

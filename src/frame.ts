@@ -56,7 +56,14 @@ export const FRAMES: Record<DeviceKey, FrameGeometry> = {
     screenRadius: 36,
   },
   "pixel-10-pro": ANDROID_FRAME.geom,
+  // No bezel art: only the screen box is used (screenOnly devices).
+  "iphone-duo-outer": bareScreen(1398, 2034, 90),
+  "iphone-duo-inner": bareScreen(2007, 2853, 90),
 };
+
+function bareScreen(width: number, height: number, screenRadius: number): FrameGeometry {
+  return { width, height, screen: { x: 0, y: 0, width, height }, screenRadius };
+}
 
 /** The iPhone geometry, which compose() uses when no device is given. */
 export const FRAME = FRAMES["iphone-6.9"];

@@ -61,6 +61,8 @@ export type StoreManifest = {
     label: string;
     platform: "ios" | "android";
     type: DeviceType;
+    /** The device renders bare screens whatever the theme says. */
+    screenOnly: boolean;
     copyScale: number;
     simulatorName: string | null;
     screenshot: { width: number; height: number };
@@ -284,6 +286,7 @@ export async function writeManifest(cfg: LoadedConfig): Promise<string> {
       label: DEVICES[key].label,
       platform: DEVICES[key].platform,
       type: DEVICES[key].type,
+      screenOnly: DEVICES[key].screenOnly ?? false,
       copyScale: DEVICES[key].copyScale ?? 1,
       simulatorName: DEVICES[key].simulatorName ?? null,
       screenshot: DEVICES[key].screenshot,

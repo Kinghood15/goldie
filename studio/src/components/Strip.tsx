@@ -265,7 +265,7 @@ export function Strip({
             tile={tileSpec.screenshot}
             frame={frameGeometry}
             theme={theme}
-            screenOnly={screenOnly}
+            screenOnly={screenOnly || tileSpec.screenOnly}
             background={background}
             frameUrl={deviceFrameUrl}
             geom={geom}

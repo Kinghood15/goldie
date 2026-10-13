@@ -516,6 +516,8 @@ export async function prepare(
     await boot(udid);
     await argent.restartServer();
   }
+  const { fold } = DEVICES[key];
+  if (fold) await argent.run("fold", { udid, posture: fold });
   await setAppearance(key, udid, appearance);
   await pinStatusBar(key, udid);
 }

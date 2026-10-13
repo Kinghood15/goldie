@@ -9,13 +9,18 @@
  *   themselves, with no store constraints enforced.
  */
 
-export type DeviceKey = "iphone-6.9" | "ipad-13" | "pixel-10-pro";
+export type DeviceKey =
+  | "iphone-6.9"
+  | "iphone-duo-outer"
+  | "iphone-duo-inner"
+  | "ipad-13"
+  | "pixel-10-pro";
 
 /**
  * The studio's device-type tabs. Finer than the platform: iPhones and iPads
  * share the App Store pipeline but are shown apart.
  */
-export type DeviceType = "iphone" | "ipad" | "android";
+export type DeviceType = "iphone" | "foldable" | "ipad" | "android";
 
 export type DeviceSpec = {
   /**
@@ -50,6 +55,12 @@ export type DeviceSpec = {
    * themselves (Play takes no video uploads). null: no preview pipeline.
    */
   preview: { width: number; height: number } | null;
+  /**
+   * Foldable simulators: the posture to fold to before capturing. "closed"
+   * shows the outer display, "open" the inner one; both keys share one
+   * simulator. iOS only.
+   */
+  fold?: "closed" | "open";
   /** Render bare screens with the drop shadow instead of a bezel. */
   screenOnly?: true;
   /**
@@ -69,6 +80,31 @@ export const DEVICES: Record<DeviceKey, DeviceSpec> = {
     native: { width: 1320, height: 2868 },
     screenshot: { width: 1320, height: 2868 },
     preview: { width: 886, height: 1920 },
+  },
+  // The iPhone Duo has no bundled bezel art, so both displays render bare.
+  // Sizes: App Store Connect screenshot specifications, iPhone Duo.
+  "iphone-duo-outer": {
+    label: "Duo outer",
+    platform: "ios",
+    type: "foldable",
+    simulatorName: "iPhone Duo",
+    fold: "closed",
+    screenOnly: true,
+    native: { width: 1398, height: 2034 },
+    screenshot: { width: 1398, height: 2034 },
+    preview: { width: 1398, height: 2034 },
+  },
+  "iphone-duo-inner": {
+    label: "Duo inner",
+    platform: "ios",
+    type: "foldable",
+    simulatorName: "iPhone Duo",
+    fold: "open",
+    screenOnly: true,
+    copyScale: 1.3,
+    native: { width: 2007, height: 2853 },
+    screenshot: { width: 2007, height: 2853 },
+    preview: { width: 2007, height: 2853 },
   },
   "ipad-13": {
     label: "13",

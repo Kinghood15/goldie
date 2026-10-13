@@ -296,7 +296,8 @@ export async function loadConfig(path = defaultConfigPath()): Promise<LoadedConf
   applyDesign(loaded, readDesign(path));
   // Fail at load time on a bad variant or missing bezel PNG; android devices
   // never load one from cfg.frame (drawn generic bezel or cfg.android.frame).
-  for (const d of loaded.devices) if (DEVICES[d].platform !== "android") framePath(loaded, d);
+  for (const d of loaded.devices)
+    if (DEVICES[d].platform !== "android" && !DEVICES[d].screenOnly) framePath(loaded, d);
   validateLayouts(loaded);
   return loaded;
 }
@@ -548,7 +549,7 @@ function configVariants(cfg: LoadedConfig): Partial<Record<DeviceKey, FrameVaria
 
 /** The variant a device renders with; null when the config points at custom art. */
 export function frameVariantFor(cfg: LoadedConfig, device: DeviceKey): FrameVariant | null {
-  if (!("variant" in cfg.frame)) return null;
+  if (!("variant" in cfg.frame) || DEVICES[device].screenOnly) return null;
   const chosen = configVariants(cfg)[device];
   if (chosen !== undefined) {
     if (!isFrameVariant(chosen)) {
@@ -586,6 +587,7 @@ export function deviceFrame(
   cfg: LoadedConfig,
   deviceKey: DeviceKey,
 ): { image: string; geom: FrameGeometry } {
+  if (DEVICES[deviceKey].screenOnly) return { image: "", geom: FRAMES[deviceKey] };
   if (DEVICES[deviceKey].platform !== "android")
     return { image: framePath(cfg, deviceKey), geom: FRAMES[deviceKey] };
   const custom = cfg.android?.frame;
