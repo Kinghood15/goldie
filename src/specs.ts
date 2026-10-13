@@ -14,7 +14,9 @@ export type DeviceKey =
   | "iphone-duo-outer"
   | "iphone-duo-inner"
   | "ipad-13"
-  | "pixel-10-pro";
+  | "pixel-10-pro"
+  | "pixel-9-pro-fold-outer"
+  | "pixel-9-pro-fold-inner";
 
 /**
  * The studio's device-type tabs. Finer than the platform: iPhones and iPads
@@ -58,7 +60,7 @@ export type DeviceSpec = {
   /**
    * Foldable simulators: the posture to fold to before capturing. "closed"
    * shows the outer display, "open" the inner one; both keys share one
-   * simulator. iOS only.
+   * simulator or emulator.
    */
   fold?: "closed" | "open";
   /** Render bare screens with the drop shadow instead of a bezel. */
@@ -129,6 +131,30 @@ export const DEVICES: Record<DeviceKey, DeviceSpec> = {
     // Near the 1280x2856 Pixel screen's aspect, so the cover-crop trims only a
     // sliver; YouTube accepts any portrait size.
     preview: { width: 1080, height: 2400 },
+  },
+  // Pixel 9 Pro Fold: one AVD, two displays (fold closed = outer, open =
+  // inner), each with its own emulator-skin bezel (src/frame.ts). Tiles are
+  // 9:16 so Play accepts them; the inner display is near-square.
+  "pixel-9-pro-fold-outer": {
+    label: "Play fold outer",
+    platform: "android",
+    type: "foldable",
+    avdDeviceNames: ["pixel_9_pro_fold"],
+    fold: "closed",
+    native: null,
+    screenshot: { width: 1080, height: 1920 },
+    preview: { width: 1080, height: 2424 },
+  },
+  "pixel-9-pro-fold-inner": {
+    label: "Play fold inner",
+    platform: "android",
+    type: "foldable",
+    avdDeviceNames: ["pixel_9_pro_fold"],
+    fold: "open",
+    copyScale: 1.3,
+    native: null,
+    screenshot: { width: 2160, height: 3840 },
+    preview: { width: 2076, height: 2152 },
   },
 };
 

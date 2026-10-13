@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import type { CustomFont } from "./fonts.ts";
-import { ANDROID_FRAME, FRAMES, type FrameGeometry } from "./frame.ts";
+import { ANDROID_FRAMES, FRAMES, type FrameGeometry } from "./frame.ts";
 import {
   isLayoutKey,
   isTemplateKey,
@@ -190,8 +190,8 @@ export type GoldieConfig = {
     appPath: string;
     applicationId: string;
     /**
-     * Bezel art for the android device, replacing the bundled Pixel 10 Pro
-     * art, with its own geometry: the image (relative to the config), its
+     * Bezel art for the pixel-10-pro device, replacing the bundled Pixel 10 Pro
+     * art (the foldable devices always use their bundled art), with its own geometry: the image (relative to the config), its
      * pixel size, the transparent screen cutout inside it, and the cutout's
      * corner radius. Android SDK emulator skins
      * (`$ANDROID_HOME/skins/<device>/`) carry exactly this: `back.webp` is the
@@ -595,13 +595,14 @@ export function deviceFrame(
   if (DEVICES[deviceKey].screenOnly) return { image: "", geom: FRAMES[deviceKey] };
   if (DEVICES[deviceKey].platform !== "android")
     return { image: framePath(cfg, deviceKey), geom: FRAMES[deviceKey] };
-  const custom = cfg.android?.frame;
+  const bundled = ANDROID_FRAMES[deviceKey]!;
+  const custom = deviceKey === "pixel-10-pro" ? cfg.android?.frame : undefined;
   if (custom) {
     const image = resolve(cfg.root, custom.image);
     if (!existsSync(image)) throw new Error(`Frame image not found: ${image}`);
     return { image, geom: custom };
   }
-  return { image: resolve(GOLDIE_ROOT, "assets", ANDROID_FRAME.file), geom: ANDROID_FRAME.geom };
+  return { image: resolve(GOLDIE_ROOT, "assets", bundled.file), geom: bundled.geom };
 }
 
 /**

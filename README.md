@@ -103,6 +103,12 @@ link, so `preview` and `all` record the preview scene on the emulator and
 render a portrait video for you to post on YouTube yourself. Apple's 15-30
 second window does not apply to it.
 
+The foldable keys `pixel-9-pro-fold-outer` (fold closed, 1080 x 2424 screen)
+and `pixel-9-pro-fold-inner` (fold open, 2076 x 2152) need an AVD with the
+Pixel 9 Pro Fold hardware profile. goldie switches the posture itself
+(`adb shell cmd device_state state 0|2`), frames each display with its own
+bundled bezel, and renders 1080 x 1920 and 2160 x 3840 tiles.
+
 ## Design
 
 https://github.com/user-attachments/assets/d6171a90-8fc1-437b-a574-5a8547068a3c

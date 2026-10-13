@@ -48,9 +48,9 @@ const ENABLE_DEVICE_TYPE: Record<
   },
   foldable: {
     icon: SmartphoneIcon,
-    title: "No iPhone Duo screenshots yet",
-    body: 'Add "iphone-duo-outer" and "iphone-duo-inner" to devices in goldie.config.ts, or ask your coding agent:',
-    command: "add iPhone Duo screenshots using goldie",
+    title: "No foldable screenshots yet",
+    body: 'Add "iphone-duo-outer" / "iphone-duo-inner" or "pixel-9-pro-fold-outer" / "pixel-9-pro-fold-inner" to devices in goldie.config.ts, or ask your coding agent:',
+    command: "add foldable screenshots using goldie",
   },
   ipad: {
     icon: TabletIcon,

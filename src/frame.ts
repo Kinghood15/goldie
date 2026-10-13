@@ -46,6 +46,41 @@ export const ANDROID_FRAME = {
   },
 } as const;
 
+/**
+ * Pixel 9 Pro Fold bezels, from the emulator skin's `default` (open) and
+ * `closed` folders: `back.webp` with the skin's `mask.webp` (rounded display
+ * corners and the camera hole) laid over the display rect, which the
+ * `layout` files place at 62,62 and 94,70. The radius is measured from the
+ * mask's alpha.
+ */
+const FOLD_FRAMES = {
+  outer: {
+    file: "pixel-9-pro-fold-outer.webp",
+    geom: {
+      width: 1236,
+      height: 2554,
+      screen: { x: 94, y: 70, width: 1080, height: 2424 },
+      screenRadius: 121,
+    },
+  },
+  inner: {
+    file: "pixel-9-pro-fold-inner.webp",
+    geom: {
+      width: 2204,
+      height: 2274,
+      screen: { x: 62, y: 62, width: 2076, height: 2152 },
+      screenRadius: 93,
+    },
+  },
+} as const;
+
+/** Bundled bezel art per android device key. */
+export const ANDROID_FRAMES: Partial<Record<DeviceKey, { file: string; geom: FrameGeometry }>> = {
+  "pixel-10-pro": ANDROID_FRAME,
+  "pixel-9-pro-fold-outer": FOLD_FRAMES.outer,
+  "pixel-9-pro-fold-inner": FOLD_FRAMES.inner,
+};
+
 export const FRAMES: Record<DeviceKey, FrameGeometry> = {
   "iphone-6.9": IPHONE_FRAME,
   /** The ipad-pro-13-* variants. */
@@ -56,6 +91,8 @@ export const FRAMES: Record<DeviceKey, FrameGeometry> = {
     screenRadius: 36,
   },
   "pixel-10-pro": ANDROID_FRAME.geom,
+  "pixel-9-pro-fold-outer": FOLD_FRAMES.outer.geom,
+  "pixel-9-pro-fold-inner": FOLD_FRAMES.inner.geom,
   // No bezel art: only the screen box is used (screenOnly devices).
   "iphone-duo-outer": bareScreen(1398, 2034, 90),
   "iphone-duo-inner": bareScreen(2007, 2853, 90),

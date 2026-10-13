@@ -503,6 +503,9 @@ export async function prepare(
     // emulator just gets the appearance and the demo-mode status bar.
     if (!(await isBooted(key, udid)))
       throw new Error(`Emulator ${udid} is no longer in "device" state.`);
+    // Foldables: Android's device states are CLOSED=0 and OPENED=2.
+    const { fold } = DEVICES[key];
+    if (fold) await adbShell(udid, ["cmd", "device_state", "state", fold === "closed" ? "0" : "2"]);
     await setAppearance(key, udid, appearance);
     await pinStatusBar(key, udid);
     return;

@@ -24,7 +24,7 @@ const config: GoldieConfig = {
   // their selectors match. The emulator must already be running.
   // android: { appPath: "/path/to/app-release.apk", applicationId: "com.example.app" },
 
-  // "iphone-6.9" (iPhone 17 Pro Max), "ipad-13" (iPad Pro 13-inch), "iphone-duo-outer" / "iphone-duo-inner" (foldable iPhone Duo, bare screens, no bezel), "pixel-10-pro" (Google Play); keys from $GOLDIE/src/specs.ts.
+  // "iphone-6.9" (iPhone 17 Pro Max), "ipad-13" (iPad Pro 13-inch), "iphone-duo-outer" / "iphone-duo-inner" (foldable iPhone Duo, bare screens, no bezel), "pixel-10-pro" (Google Play phone), "pixel-9-pro-fold-outer" / "pixel-9-pro-fold-inner" (Google Play foldable, Pixel 9 Pro Fold AVD, bundled bezels); keys from $GOLDIE/src/specs.ts.
   // Every device replays the same flows and gets its own raw captures, output folder and studio view.
   devices: ["iphone-6.9", "ipad-13"],
   locales: ["en-US"],

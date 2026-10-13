@@ -260,6 +260,12 @@ Pixel 10 Pro bezel instead of the config's `frame` variant (iPhone art);
 portrait video for the user to post on YouTube themselves; no duration
 bounds apply to it.
 
+The foldable keys `pixel-9-pro-fold-outer` (fold closed, 1080 x 2424 screen)
+and `pixel-9-pro-fold-inner` (fold open, 2076 x 2152) need an AVD with the
+Pixel 9 Pro Fold hardware profile. goldie switches the posture itself
+(`adb shell cmd device_state state 0|2`), frames each display with its own
+bundled bezel, and renders 1080 x 1920 and 2160 x 3840 tiles.
+
 ## Iterating on an existing setup
 
 A follow-up prompt maps onto a small change in the config or a flow, then
