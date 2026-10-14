@@ -22,7 +22,7 @@ export type DeviceKey =
  * The studio's device-type tabs. Finer than the platform: iPhones and iPads
  * share the App Store pipeline but are shown apart.
  */
-export type DeviceType = "iphone" | "foldable" | "ipad" | "android";
+export type DeviceType = "iphone" | "iphone-foldable" | "android-foldable" | "ipad" | "android";
 
 export type DeviceSpec = {
   /**
@@ -88,7 +88,7 @@ export const DEVICES: Record<DeviceKey, DeviceSpec> = {
   "iphone-duo-outer": {
     label: "Duo outer",
     platform: "ios",
-    type: "foldable",
+    type: "iphone-foldable",
     simulatorName: "iPhone Duo",
     fold: "closed",
     screenOnly: true,
@@ -99,7 +99,7 @@ export const DEVICES: Record<DeviceKey, DeviceSpec> = {
   "iphone-duo-inner": {
     label: "Duo inner",
     platform: "ios",
-    type: "foldable",
+    type: "iphone-foldable",
     simulatorName: "iPhone Duo",
     fold: "open",
     screenOnly: true,
@@ -138,7 +138,7 @@ export const DEVICES: Record<DeviceKey, DeviceSpec> = {
   "pixel-9-pro-fold-outer": {
     label: "Play fold outer",
     platform: "android",
-    type: "foldable",
+    type: "android-foldable",
     avdDeviceNames: ["pixel_9_pro_fold"],
     fold: "closed",
     native: null,
@@ -148,7 +148,7 @@ export const DEVICES: Record<DeviceKey, DeviceSpec> = {
   "pixel-9-pro-fold-inner": {
     label: "Play fold inner",
     platform: "android",
-    type: "foldable",
+    type: "android-foldable",
     avdDeviceNames: ["pixel_9_pro_fold"],
     fold: "open",
     copyScale: 1.3,

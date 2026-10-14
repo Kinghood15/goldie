@@ -27,3 +27,5 @@ export { renderPreview, renderScreenshots, verify } from "./render.ts";
 export { FlowFailure, repairBrief } from "./repair.ts";
 export type { DeviceKey, DeviceSpec } from "./specs.ts";
 export { DEVICES, PREVIEW } from "./specs.ts";
+export type { ThemePresetKey } from "./themes.ts";
+export { THEME_PRESET_KEYS, THEME_PRESETS, themePreset } from "./themes.ts";

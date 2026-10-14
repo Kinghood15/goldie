@@ -687,6 +687,29 @@ export async function renderPreview(cfg: LoadedConfig, deviceKey: DeviceKey, loc
     return clip;
   });
 
+  // The cover-crop below hides a recording from the wrong display (a foldable
+  // captured in the other posture), so fail loudly before it ships cropped.
+  const want = spec.preview.width / spec.preview.height;
+  for (const clip of clips) {
+    const r = await execOrThrow("ffprobe", [
+      "-v",
+      "error",
+      "-select_streams",
+      "v:0",
+      "-show_entries",
+      "stream=width,height",
+      "-of",
+      "csv=p=0:s=x",
+      clip.file,
+    ]);
+    const [w, h] = r.stdout.trim().split("x").map(Number);
+    if (w && h && Math.abs(w / h / want - 1) > 0.1)
+      throw new Error(
+        `Clip ${basename(clip.file)} is ${w}x${h} but ${deviceKey} previews are ${spec.preview.width}x${spec.preview.height}: ` +
+          `the recording came from the wrong display or posture. Re-run: goldie capture`,
+      );
+  }
+
   const seconds = clips.reduce((s, c) => s + c.durationSeconds, 0);
   // The 15-30s window is Apple's upload rule; a YouTube video has no bounds.
   if (spec.platform === "ios" && (seconds < PREVIEW.minSeconds || seconds > PREVIEW.maxSeconds)) {

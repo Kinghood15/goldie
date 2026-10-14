@@ -525,6 +525,51 @@ export async function prepare(
   await pinStatusBar(key, udid);
 }
 
+/**
+ * SurfaceFlinger id of the display that is on. A foldable emulator has two
+ * physical displays; `screenrecord` without `--display-id` picks the first
+ * one found (the inner display) whatever the fold posture, so a closed
+ * foldable would be recorded as the wrong, wider screen.
+ */
+async function activeDisplayId(serial: string): Promise<string> {
+  const r = await execOrThrow("adb", ["-s", serial, "shell", "dumpsys", "display"]);
+  for (const line of r.stdout.split("\n")) {
+    const m = line.match(/DisplayDeviceInfo\{.*uniqueId="local:(\d+)".*?, state ON,/);
+    if (m) return m[1]!;
+  }
+  throw new Error(`No display is on for ${serial}; is the emulator awake?`);
+}
+
+/**
+ * Records the active display of a foldable android emulator (the argent
+ * recorder cannot choose a display). Resolves when recording has started;
+ * `stop` finalizes the mp4 and copies it to `file`.
+ */
+export async function recordFoldDisplay(
+  udid: string,
+  file: string,
+): Promise<{ stop: () => Promise<{ video: string; durationMs: number }> }> {
+  const remote = "/sdcard/goldie-fold-recording.mp4";
+  const displayId = await activeDisplayId(udid);
+  const started = Date.now();
+  const child = spawn(
+    "adb",
+    ["-s", udid, "shell", "screenrecord", "--display-id", displayId, "--time-limit", "120", remote],
+    { stdio: "ignore" },
+  );
+  const closed = new Promise<void>((done) => child.once("close", () => done()));
+  return {
+    stop: async () => {
+      // SIGINT makes screenrecord write the mp4 trailer; killing adb would not.
+      await execOrThrow("adb", ["-s", udid, "shell", "kill -2 $(pidof screenrecord)"]);
+      await closed;
+      await execOrThrow("adb", ["-s", udid, "pull", remote, file]);
+      await exec("adb", ["-s", udid, "shell", "rm", remote]);
+      return { video: file, durationMs: Date.now() - started };
+    },
+  };
+}
+
 export async function warmUp(udid: string, bundleId: string): Promise<void> {
   await argent.run("launch-app", { udid, bundleId }).catch(() => {});
   await argent.run("await-screen-idle", { udid, timeoutMs: 60000 }).catch(() => {});

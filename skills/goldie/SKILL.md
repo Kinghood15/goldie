@@ -171,8 +171,9 @@ flows so they read apart from the app's test flows, and reuse an existing flow
 by name when one already reaches the screen. `flowsDir` in the config overrides
 the location; the default is `.argent/flows` under `appRoot`.
 
-Read `references/config.md` for the config schema, an annotated example, and
-copywriting guidance. Read `references/flows.md` for the flow YAML vocabulary
+Read `references/config.md` for the config schema and an annotated example,
+and `references/copy.md` for conversion-focused store copy (headline patterns,
+strip storytelling, ASO keywords, localization). Read `references/flows.md` for the flow YAML vocabulary
 and the conventions that keep flows replayable. Write the headlines and
 subheads yourself in the app's voice; they are the marketing layer, so make
 them benefit-led and short.

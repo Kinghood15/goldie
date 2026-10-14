@@ -163,7 +163,26 @@ applies to every tile, `scenes[].decorations` to one; both stack.
   x: 0.7, y: 0.1, width: 0.25, rotate: 12 }           // fractions of the tile
 ```
 
+## Theme presets and logo
+
+`themePreset(key)` (exported from goldie) returns a ready look: `aurora`,
+`clean`, `sunrise`, `mint`, `noir`, `candy`, `trust`, `paper`. Spread it and
+override anything after it:
+
+```ts
+theme: { ...themePreset("aurora"), layout: "classic",
+         logo: { src: "art/logo.png", position: "top-left" } },
+```
+
+`theme.logo` draws the app logo (PNG) on every screenshot in the top margin
+above the copy: `position` is `top-left` (default), `top-center` or
+`top-right`; `width` is a fraction of the tile width and is shrunk to fit the
+margin. Use a transparent PNG with a light logo on dark presets and a dark
+one on light presets. For other placements use an `image` decoration.
+
 ## Writing the copy
+
+See `copy.md` for the full guide; the short version:
 
 - **Headlines**: 2 to 5 words, benefit-led, sentence case. Name what the user
   gets ("Find anything, fast"), never what the UI is ("Search screen").

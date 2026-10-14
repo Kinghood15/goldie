@@ -184,12 +184,19 @@ async function captureSegments(
     await device.pinStatusBar(deviceKey, udid);
     // trimStatic and showTouches both default to true and both ruin a marketing
     // clip: trimming destroys real-time pacing, and the touch pulse is an overlay.
-    await argent.run("screen-recording-start", {
-      udid,
-      timeLimitSeconds: 120,
-      trimStatic: false,
-      showTouches: false,
-    });
+    // A foldable emulator is recorded per display: argent cannot pick one and
+    // would film the inner display even with the phone folded.
+    const foldRecorder =
+      DEVICES[deviceKey].platform === "android" && DEVICES[deviceKey].fold
+        ? await device.recordFoldDisplay(udid, file)
+        : null;
+    if (!foldRecorder)
+      await argent.run("screen-recording-start", {
+        udid,
+        timeLimitSeconds: 120,
+        trimStatic: false,
+        showTouches: false,
+      });
 
     const releaseStatusBar = holdStatusBar(deviceKey, udid);
     let failure: FlowFailure | null = null;
@@ -210,16 +217,18 @@ async function captureSegments(
       // Release even if the stop throws: a live re-pin loop keeps the process
       // from exiting, so a failed capture would hang instead of reporting.
       try {
-        stopped = await argent.run<{ video: string; durationMs: number }>("screen-recording-stop", {
-          udid,
-        });
+        stopped = foldRecorder
+          ? await foldRecorder.stop()
+          : await argent.run<{ video: string; durationMs: number }>("screen-recording-stop", {
+              udid,
+            });
       } finally {
         await releaseStatusBar();
       }
     }
     if (failure) throw failure;
 
-    await copyFile(stopped!.video, file);
+    if (stopped!.video !== file) await copyFile(stopped!.video, file);
     clips.push({ segmentId: segment.id, file, durationSeconds: stopped!.durationMs / 1000 });
   }
 

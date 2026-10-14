@@ -33,9 +33,10 @@ import type { StripView } from "./Strip";
  */
 const DEVICE_TYPES: Array<{ key: DeviceType; icon: LucideIcon; label: string }> = [
   { key: "iphone", icon: SmartphoneIcon, label: "iPhone" },
-  { key: "foldable", icon: SmartphoneIcon, label: "Foldable" },
+  { key: "iphone-foldable", icon: SmartphoneIcon, label: "iPhone Duo" },
   { key: "ipad", icon: TabletIcon, label: "iPad" },
   { key: "android", icon: PlayIcon, label: "Android" },
+  { key: "android-foldable", icon: PlayIcon, label: "Pixel Fold" },
   { key: "creative", icon: ImageIcon, label: "Creative" },
 ];
 
@@ -184,7 +185,9 @@ export function Sidebar({
           design={manifest.design}
           device={device}
           deviceFrame={
-            deviceType === "android" || Boolean(typeDevices.find((d) => d.key === device)?.frame)
+            deviceType === "android" ||
+            deviceType === "android-foldable" ||
+            Boolean(typeDevices.find((d) => d.key === device)?.frame)
           }
           background={background}
           frame={frame}

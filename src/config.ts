@@ -3,6 +3,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import type { CustomFont } from "./fonts.ts";
 import { ANDROID_FRAMES, FRAMES, type FrameGeometry } from "./frame.ts";
+import { pngInfo } from "./image.ts";
 import {
   isLayoutKey,
   isTemplateKey,
@@ -146,6 +147,12 @@ export type Theme = {
   screenOnly?: boolean;
   /** Decoration layers added to every screenshot scene. */
   decorations?: Decoration[];
+  /**
+   * The app logo (PNG relative to the config), drawn on every screenshot in the
+   * top margin above the copy. Sized to fit that margin; `width` is a fraction
+   * of the tile width and is only ever shrunk to fit, never past it.
+   */
+  logo?: { src: string; position?: "top-left" | "top-center" | "top-right"; width?: number };
 };
 
 /**
@@ -299,12 +306,35 @@ export async function loadConfig(path = defaultConfigPath()): Promise<LoadedConf
   }
   resolveFontFiles(loaded); // config-relative font paths -> absolute, once
   applyDesign(loaded, readDesign(path));
+  await applyLogo(loaded);
   // Fail at load time on a bad variant or missing bezel PNG; android devices
   // never load one from cfg.frame (drawn generic bezel or cfg.android.frame).
   for (const d of loaded.devices)
     if (DEVICES[d].platform !== "android" && !DEVICES[d].screenOnly) framePath(loaded, d);
   validateLayouts(loaded);
   return loaded;
+}
+
+/** Logo margin: fractions of the tile, inside the copy's top padding (TYPE.padTop in layouts.ts). */
+const LOGO = { inset: 0.06, top: 0.012, maxHeight: 0.035, tileAspect: 1320 / 2868, width: 0.1 };
+
+/** Expands `theme.logo` into an image decoration, so render and studio draw it like any other. */
+async function applyLogo(cfg: LoadedConfig): Promise<void> {
+  const logo = cfg.theme.logo;
+  if (!logo) return;
+  const file = resolve(cfg.root, logo.src);
+  if (!existsSync(file)) throw new Error(`theme.logo: no file at ${file}`);
+  const { width: w, height: h } = await pngInfo(file);
+  const width = Math.min(logo.width ?? LOGO.width, (LOGO.maxHeight * w) / h / LOGO.tileAspect);
+  const position = logo.position ?? "top-left";
+  const x =
+    position === "top-left"
+      ? LOGO.inset
+      : position === "top-right"
+        ? 1 - LOGO.inset - width
+        : (1 - width) / 2;
+  const image: Decoration = { kind: "image", src: logo.src, x, y: LOGO.top, width };
+  cfg.theme = { ...cfg.theme, decorations: [...(cfg.theme.decorations ?? []), image] };
 }
 
 /**

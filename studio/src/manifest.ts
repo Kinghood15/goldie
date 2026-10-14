@@ -34,7 +34,13 @@ export type FrameGeometry = {
 };
 
 /** Mirrors DeviceType in src/specs.ts: the sidebar's device-type tabs. */
-export type DeviceType = "iphone" | "foldable" | "ipad" | "android" | "creative";
+export type DeviceType =
+  | "iphone"
+  | "iphone-foldable"
+  | "android-foldable"
+  | "ipad"
+  | "android"
+  | "creative";
 
 export type DeviceEntry = {
   key: string;

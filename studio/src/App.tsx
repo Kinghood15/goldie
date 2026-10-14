@@ -2,6 +2,7 @@ import {
   CameraIcon,
   ImageIcon,
   type LucideIcon,
+  PlayIcon,
   SmartphoneIcon,
   TabletIcon,
   TriangleAlertIcon,
@@ -29,7 +30,14 @@ import {
 /** Sentinel for the config's own layout sequence, which the studio can show but not edit. */
 export const CUSTOM_TEMPLATE = "__custom__";
 
-const DEVICE_TYPES: DeviceType[] = ["iphone", "foldable", "ipad", "android", "creative"];
+const DEVICE_TYPES: DeviceType[] = [
+  "iphone",
+  "iphone-foldable",
+  "ipad",
+  "android",
+  "android-foldable",
+  "creative",
+];
 
 /**
  * Shown when a device-type tab is selected but its device is not in the
@@ -46,11 +54,17 @@ const ENABLE_DEVICE_TYPE: Record<
     body: "Ask your coding agent to set them up:",
     command: "create App Store screenshots using goldie",
   },
-  foldable: {
+  "iphone-foldable": {
     icon: SmartphoneIcon,
-    title: "No foldable screenshots yet",
-    body: 'Add "iphone-duo-outer" / "iphone-duo-inner" or "pixel-9-pro-fold-outer" / "pixel-9-pro-fold-inner" to devices in goldie.config.ts, or ask your coding agent:',
-    command: "add foldable screenshots using goldie",
+    title: "No iPhone Duo screenshots yet",
+    body: 'Add "iphone-duo-outer" / "iphone-duo-inner" to devices in goldie.config.ts, or ask your coding agent:',
+    command: "add iPhone Duo screenshots using goldie",
+  },
+  "android-foldable": {
+    icon: PlayIcon,
+    title: "No Pixel Fold screenshots yet",
+    body: 'Add "pixel-9-pro-fold-outer" / "pixel-9-pro-fold-inner" to devices in goldie.config.ts, or ask your coding agent:',
+    command: "add Pixel Fold screenshots using goldie",
   },
   ipad: {
     icon: TabletIcon,
