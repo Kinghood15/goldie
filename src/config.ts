@@ -179,6 +179,12 @@ export type GoldieConfig = {
   creative?: {
     /** Screenshot scene whose capture and copy fill them. Defaults to the first scene in display order. */
     scene?: string;
+    /**
+     * App icon or wordmark PNG (relative to the config). When set, the header
+     * leads with it, large above the headline beside one phone, instead of
+     * pairing two phones. Unlike `theme.logo`, it is not drawn on screenshots.
+     */
+    logo?: string;
   };
   /** Absolute path to the app repo. Holds `.argent/flows`; also used for messages and for locating the build. */
   appRoot: string;

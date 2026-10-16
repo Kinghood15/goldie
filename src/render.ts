@@ -182,6 +182,7 @@ export async function renderCreative(cfg: LoadedConfig, locale: string) {
   const screenOnly = Boolean(cfg.theme.screenOnly || spec.screenOnly);
   const bezel = screenOnly ? null : await loadImage(image);
   registerFonts(cfg.theme.fontFiles);
+  const logo = cfg.creative?.logo ? await loadImage(resolve(cfg.root, cfg.creative.logo)) : null;
 
   const outDir = join(cfg.outDir, "creative", locale);
   await rm(outDir, { recursive: true, force: true });
@@ -202,11 +203,13 @@ export async function renderCreative(cfg: LoadedConfig, locale: string) {
 
     // Device: as tall as the area (as wide as 78% of it when tall), dropped so the bottom bleeds off.
     const art = screenOnly ? { width: geom.screen.width, height: geom.screen.height } : geom;
-    // The header pairs two smaller phones: the scene's in front, another scene tilted behind.
-    const pair = key === "header";
+    // The header leads with the logo when there is one, else pairs two smaller phones: the
+    // scene's in front, another scene tilted behind.
+    const lead = key === "header" && logo;
+    const pair = key === "header" && !logo;
     const k = tall
       ? (area.width * 0.78) / art.width
-      : (area.height * (pair ? 0.75 : 1)) / art.height;
+      : (area.height * (pair ? 0.75 : lead ? 0.9 : 1)) / art.height;
     const origin = screenOnly ? { x: 0, y: 0 } : geom.screen;
     const place = (
       centre: number,
@@ -230,7 +233,7 @@ export async function renderCreative(cfg: LoadedConfig, locale: string) {
       };
     };
     const { frame, screen } = place(
-      tall ? 0.5 : pair ? 0.73 : 0.74,
+      tall ? 0.5 : pair ? 0.73 : lead ? 0.77 : 0.74,
       tall ? 0.36 : pair ? 0.1 : 0.14,
     );
     const back = pair && {
@@ -243,8 +246,8 @@ export async function renderCreative(cfg: LoadedConfig, locale: string) {
       position: "top" as const,
       align: "left" as const,
       x: area.left + area.width * 0.08,
-      y: area.top + area.height * (tall ? 0.07 : 0.3),
-      maxWidth: area.width * (tall ? 0.84 : key === "header" ? 0.5 : 0.44),
+      y: area.top + area.height * (tall ? 0.07 : lead ? 0.44 : 0.3),
+      maxWidth: area.width * (tall ? 0.84 : key === "header" ? 0.54 : 0.44),
       typeWidth,
       box: area,
     };
@@ -255,6 +258,15 @@ export async function renderCreative(cfg: LoadedConfig, locale: string) {
       ctx.fillStyle = paint(ctx, background, width, height);
       ctx.fillRect(0, 0, width, height);
       drawCopy(ctx, copy, tile, cfg.theme, text);
+      if (lead) {
+        const size = area.height * 0.22;
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(copy.x, area.top + area.height * 0.15, size, size, size * 0.225);
+        ctx.clip();
+        ctx.drawImage(lead, copy.x, area.top + area.height * 0.15, size, size);
+        ctx.restore();
+      }
       if (back)
         drawDevice(ctx, { ...back, rotate: 7, capture: "primary" }, back.image, bezel, {
           width: area.height * 0.46,
