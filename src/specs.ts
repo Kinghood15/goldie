@@ -214,5 +214,19 @@ export const SAFE_AREA = (() => {
   return { left: (u.width - width) / 2, top: (u.height - height) / 2, width, height };
 })();
 
+/**
+ * Where a placement's copy and device may sit. The iPhone product page shows
+ * the 21:9 header cropped to about 3:2 around its centre, so the header keeps
+ * to a centred 3:2 band; the universal asset keeps to SAFE_AREA; the rest use
+ * the whole canvas.
+ */
+export function creativeArea(key: CreativeKey) {
+  const { width, height } = CREATIVE[key];
+  if (key === "universal") return SAFE_AREA;
+  if (key !== "header") return { left: 0, top: 0, width, height };
+  const band = height * 1.5;
+  return { left: (width - band) / 2, top: 0, width: band, height };
+}
+
 /** Screenshots may not carry an alpha channel. */
 export const SCREENSHOT_PIXEL_FORMAT = "rgb24";

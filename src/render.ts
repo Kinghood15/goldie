@@ -26,10 +26,10 @@ import {
   CREATIVE_KEYS,
   CREATIVE_VIDEO,
   type CreativeKey,
+  creativeArea,
   DEVICES,
   type DeviceKey,
   PREVIEW,
-  SAFE_AREA,
   SCREENSHOT_PIXEL_FORMAT,
 } from "./specs.ts";
 
@@ -157,11 +157,14 @@ export async function renderScreenshots(cfg: LoadedConfig, deviceKey: DeviceKey,
 export async function renderCreative(cfg: LoadedConfig, locale: string) {
   if (isTransparent(cfg.theme.background))
     throw new Error("Creative assets must be opaque; set a non-transparent theme.background.");
-  const scene = cfg.creative?.scene
-    ? cfg.scenes.find((s) => s.id === cfg.creative!.scene && s.kind === "screenshot")
-    : resolvedScenes(cfg)[0]?.scene;
-  if (!scene || scene.kind !== "screenshot")
+  // Each placement gets its own scene (capture + copy) so the set does not repeat itself:
+  // display order starting at creative.scene, one scene per placement, cycling.
+  const ordered = resolvedScenes(cfg).map((r) => r.scene);
+  const first = cfg.creative?.scene ? ordered.findIndex((s) => s.id === cfg.creative!.scene) : 0;
+  if (first < 0)
     throw new Error(`creative.scene "${cfg.creative?.scene}" is not a screenshot scene.`);
+  if (!ordered.length) throw new Error("No screenshot scenes to compose creative assets from.");
+  const sceneAt = (i: number) => ordered[(first + i) % ordered.length]!;
 
   // Frame with an iPhone when the config has one; the bezel follows that device.
   const deviceKey =
@@ -170,9 +173,11 @@ export async function renderCreative(cfg: LoadedConfig, locale: string) {
     cfg.devices[0]!;
   const spec = DEVICES[deviceKey];
   const manifest = await readManifest(cfg, deviceKey, locale);
-  const shot = manifest.screenshots.find((s) => s.sceneId === scene.id);
-  if (!shot) throw new Error(`Scene "${scene.id}" is not in the capture manifest.`);
-  const capture = await loadImage(shot.file);
+  const shotOf = (id: string) => {
+    const shot = manifest.screenshots.find((s) => s.sceneId === id);
+    if (!shot) throw new Error(`Scene "${id}" is not in the capture manifest.`);
+    return loadImage(shot.file);
+  };
   const { image, geom } = deviceFrame(cfg, deviceKey);
   const screenOnly = Boolean(cfg.theme.screenOnly || spec.screenOnly);
   const bezel = screenOnly ? null : await loadImage(image);
@@ -181,44 +186,65 @@ export async function renderCreative(cfg: LoadedConfig, locale: string) {
   const outDir = join(cfg.outDir, "creative", locale);
   await rm(outDir, { recursive: true, force: true });
   await mkdir(outDir, { recursive: true });
-  const background = scene.background ?? cfg.theme.background;
-  const text = {
-    headline: pick(scene.headline, locale, scene.id, "headline"),
-    subhead: scene.subhead ? pick(scene.subhead, locale, scene.id, "subhead") : undefined,
-  };
 
   const files: string[] = [];
-  for (const key of CREATIVE_KEYS) {
+  for (const [index, key] of CREATIVE_KEYS.entries()) {
+    const scene = sceneAt(index);
+    const capture = await shotOf(scene.id);
+    const background = scene.background ?? cfg.theme.background;
+    const text = {
+      headline: pick(scene.headline, locale, scene.id, "headline"),
+      subhead: scene.subhead ? pick(scene.subhead, locale, scene.id, "subhead") : undefined,
+    };
     const { width, height } = CREATIVE[key];
     const tall = height > width;
-    const area: Rect = key === "universal" ? SAFE_AREA : { left: 0, top: 0, width, height };
+    const area: Rect = creativeArea(key);
 
     // Device: as tall as the area (as wide as 78% of it when tall), dropped so the bottom bleeds off.
     const art = screenOnly ? { width: geom.screen.width, height: geom.screen.height } : geom;
-    const k = tall ? (area.width * 0.78) / art.width : area.height / art.height;
+    // The header pairs two smaller phones: the scene's in front, another scene tilted behind.
+    const pair = key === "header";
+    const k = tall
+      ? (area.width * 0.78) / art.width
+      : (area.height * (pair ? 0.75 : 1)) / art.height;
     const origin = screenOnly ? { x: 0, y: 0 } : geom.screen;
-    const frame: Rect = {
-      left: tall
-        ? area.left + (area.width - art.width * k) / 2
-        : area.left + area.width * 0.74 - (art.width * k) / 2,
-      top: area.top + area.height * (tall ? 0.36 : 0.14),
-      width: art.width * k,
-      height: art.height * k,
+    const place = (
+      centre: number,
+      top: number,
+    ): { frame: Rect; screen: Rect & { radius: number } } => {
+      const frame: Rect = {
+        left: area.left + area.width * centre - (art.width * k) / 2,
+        top: area.top + area.height * top,
+        width: art.width * k,
+        height: art.height * k,
+      };
+      return {
+        frame,
+        screen: {
+          left: frame.left + origin.x * k,
+          top: frame.top + origin.y * k,
+          width: geom.screen.width * k,
+          height: geom.screen.height * k,
+          radius: geom.screenRadius * k,
+        },
+      };
     };
-    const screen = {
-      left: frame.left + origin.x * k,
-      top: frame.top + origin.y * k,
-      width: geom.screen.width * k,
-      height: geom.screen.height * k,
-      radius: geom.screenRadius * k,
+    const { frame, screen } = place(
+      tall ? 0.5 : pair ? 0.73 : 0.74,
+      tall ? 0.36 : pair ? 0.1 : 0.14,
+    );
+    const back = pair && {
+      ...place(0.86, 0.2),
+      image: await shotOf(sceneAt(index + 1).id),
     };
-    const typeWidth = tall ? area.width : area.height * 1.1;
+    // The header's band is narrower than it is tall-scaled, so size type to its width.
+    const typeWidth = tall ? area.width : key === "header" ? area.width * 0.58 : area.height * 1.1;
     const copy = {
       position: "top" as const,
       align: "left" as const,
       x: area.left + area.width * 0.08,
       y: area.top + area.height * (tall ? 0.07 : 0.3),
-      maxWidth: area.width * (tall ? 0.84 : 0.44),
+      maxWidth: area.width * (tall ? 0.84 : key === "header" ? 0.5 : 0.44),
       typeWidth,
       box: area,
     };
@@ -229,6 +255,10 @@ export async function renderCreative(cfg: LoadedConfig, locale: string) {
       ctx.fillStyle = paint(ctx, background, width, height);
       ctx.fillRect(0, 0, width, height);
       drawCopy(ctx, copy, tile, cfg.theme, text);
+      if (back)
+        drawDevice(ctx, { ...back, rotate: 7, capture: "primary" }, back.image, bezel, {
+          width: area.height * 0.46,
+        });
       return { canvas, ctx };
     };
 
